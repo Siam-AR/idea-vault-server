@@ -1,3 +1,4 @@
+// Initial Express Server Setup
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -17,3 +18,28 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+// MongoDB Connection Setup
+const { MongoClient, ServerApiVersion } = require("mongodb");
+
+const uri = process.env.MONGODB_URI;
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+});
+
+async function run() {
+  try {
+    const db = client.db("idea-vault");
+
+    console.log("MongoDB Connected");
+  } finally {
+  }
+}
+
+run().catch(console.dir);
