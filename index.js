@@ -134,3 +134,51 @@ app.post("/auth/register", async (req, res) => {
     });
   }
 });
+
+
+//User login API
+app.post("/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await usersCollection.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
+    }
+
+    const isPasswordValid = await bcryptjs.compare(
+      password,
+      user.password
+    );
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Login failed",
+    });
+  }
+});
