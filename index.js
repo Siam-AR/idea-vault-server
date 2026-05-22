@@ -336,5 +336,36 @@ app.delete("/ideas/:id", verifyToken, async (req, res) => {
 });
 
 
+// Search, Filter & Featured Ideas
+app.get("/ideas/featured", async (req, res) => {
+  const result = await startupIdeasCollection
+    .find()
+    .limit(6)
+    .toArray();
+
+  res.json(result);
+});
+
+app.get("/ideas", async (req, res) => {
+  const { category, search } = req.query;
+
+  let filter = {};
+
+  if (category) {
+    filter.category = category;
+  }
+
+  if (search) {
+    filter.title = {
+      $regex: search,
+      $options: "i",
+    };
+  }
+
+  const result =
+    await startupIdeasCollection.find(filter).toArray();
+
+  res.json(result);
+});
 
 
