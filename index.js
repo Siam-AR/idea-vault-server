@@ -582,6 +582,57 @@ async function run() {
       }
     });
 
+    // Get authenticated user's comments
+    app.get("/comments/me", verifyToken, async (req, res) => {
+      try {
+        const rawUserId = req.user?.userId;
+        const normalizedUserId =
+          typeof rawUserId === "string"
+            ? rawUserId
+            : rawUserId?.$oid || rawUserId?.id || rawUserId?.toString?.();
+
+        if (!normalizedUserId || !ObjectId.isValid(normalizedUserId)) {
+          return res.status(401).json({ message: "Invalid or expired session. Please log in again." });
+        }
+
+        const userId = new ObjectId(normalizedUserId);
+        const comments = await commentsCollection
+          .find({ userId })
+          .sort({ updatedAt: -1, createdAt: -1 })
+          .toArray();
+
+        const commentsWithContext = await Promise.all(
+          comments.map(async (comment) => {
+            const [commentResponse, idea] = await Promise.all([
+              buildCommentResponse(comment),
+              startupIdeasCollection.findOne(
+                { _id: comment.ideaId },
+                { projection: { title: 1, category: 1, imageURL: 1, userName: 1, userEmail: 1 } }
+              ),
+            ]);
+
+            return {
+              ...commentResponse,
+              idea: idea
+                ? {
+                    _id: idea._id,
+                    title: idea.title,
+                    category: idea.category,
+                    imageURL: idea.imageURL,
+                    authorName: idea.userName || idea.userEmail || "Anonymous",
+                  }
+                : null,
+            };
+          })
+        );
+
+        res.json(commentsWithContext);
+      } catch (error) {
+        console.error("Error fetching user comments:", error);
+        res.status(500).json({ message: "Error fetching user comments" });
+      }
+    });
+
     // Get Comments for an Idea
     app.get("/comments/:ideaId", async (req, res) => {
       try {
