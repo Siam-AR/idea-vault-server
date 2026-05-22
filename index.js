@@ -45,7 +45,7 @@ async function run() {
 run().catch(console.dir);
 
 
-//JWT Authentication Middleware
+// JWT Authentication Middleware
 const jwt = require("jsonwebtoken");
 
 const JWT_SECRET =
@@ -76,7 +76,7 @@ const verifyToken = async (req, res, next) => {
 };
 
 
-//User Registration API
+// User Registration API
 const bcryptjs = require("bcryptjs");
 
 const usersCollection = db.collection("users");
@@ -136,7 +136,7 @@ app.post("/auth/register", async (req, res) => {
 });
 
 
-//User login API
+// User login API
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -184,7 +184,7 @@ app.post("/auth/login", async (req, res) => {
 });
 
 
-//Google OAuth Authentication
+// Google OAuth Authentication
 app.post("/auth/google", async (req, res) => {
   try {
     const { name, email, image, googleId } = req.body;
@@ -233,6 +233,40 @@ app.post("/auth/google", async (req, res) => {
     });
   }
 });
+
+
+// User Profile Management
+app.get("/auth/user", verifyToken, async (req, res) => {
+  const user = await usersCollection.findOne({
+    _id: new ObjectId(req.user.userId),
+  });
+
+  res.json({
+    user,
+  });
+});
+
+app.patch("/auth/user", verifyToken, async (req, res) => {
+  const { name, image } = req.body;
+
+  await usersCollection.updateOne(
+    {
+      _id: new ObjectId(req.user.userId),
+    },
+    {
+      $set: {
+        name,
+        image,
+        updatedAt: new Date(),
+      },
+    }
+  );
+
+  res.json({
+    message: "Profile updated successfully",
+  });
+});
+
 
 
 
