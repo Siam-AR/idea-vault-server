@@ -182,3 +182,57 @@ app.post("/auth/login", async (req, res) => {
     });
   }
 });
+
+
+//Google OAuth Authentication
+app.post("/auth/google", async (req, res) => {
+  try {
+    const { name, email, image, googleId } = req.body;
+
+    let user = await usersCollection.findOne({ email });
+
+    if (!user) {
+      const newUser = {
+        name,
+        email,
+        password: "",
+        image: image || "",
+        googleId: googleId || "",
+        authMethod: "google",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const result = await usersCollection.insertOne(newUser);
+
+      user = {
+        ...newUser,
+        _id: result.insertedId,
+      };
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    res.json({
+      message: "Google login successful",
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Google OAuth failed",
+    });
+  }
+});
+
+
+
