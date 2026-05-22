@@ -75,3 +75,62 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
+
+//User Registration API
+const bcryptjs = require("bcryptjs");
+
+const usersCollection = db.collection("users");
+
+app.post("/auth/register", async (req, res) => {
+  try {
+    const { name, email, password, image } = req.body;
+
+    if (!email || !password || !name) {
+      return res.status(400).json({
+        message: "Missing required fields",
+      });
+    }
+
+    const existingUser = await usersCollection.findOne({ email });
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "User already exists",
+      });
+    }
+
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    const newUser = {
+      name,
+      email,
+      password: hashedPassword,
+      image: image || "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const result = await usersCollection.insertOne(newUser);
+
+    const token = jwt.sign(
+      {
+        userId: result.insertedId,
+        email,
+        name,
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Registration failed",
+    });
+  }
+});
