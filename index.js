@@ -9,11 +9,12 @@ dotenv.config();
 
 const uri = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
 const app = express();
 const PORT = process.env.PORT;
 
-app.use(cors());
+app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
 
 const client = new MongoClient(uri, {
@@ -736,6 +737,10 @@ app.get("/", (req, res) => {
   res.send("Server is running fine!");
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
