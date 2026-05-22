@@ -268,5 +268,73 @@ app.patch("/auth/user", verifyToken, async (req, res) => {
 });
 
 
+// Startup Ideas CRUD APIs
+const startupIdeasCollection =
+  db.collection("startup-ideas");
+
+app.post("/ideas", verifyToken, async (req, res) => {
+  const ideaData = {
+    ...req.body,
+    userId: new ObjectId(req.user.userId),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    likes: 0,
+    commentCount: 0,
+  };
+
+  const result =
+    await startupIdeasCollection.insertOne(ideaData);
+
+  res.status(201).json({
+    message: "Idea created successfully",
+    id: result.insertedId,
+  });
+});
+
+app.get("/ideas", async (req, res) => {
+  const result =
+    await startupIdeasCollection.find().toArray();
+
+  res.json(result);
+});
+
+app.get("/ideas/:id", async (req, res) => {
+  const result =
+    await startupIdeasCollection.findOne({
+      _id: new ObjectId(req.params.id),
+    });
+
+  res.json(result);
+});
+
+app.patch("/ideas/:id", verifyToken, async (req, res) => {
+  await startupIdeasCollection.updateOne(
+    {
+      _id: new ObjectId(req.params.id),
+    },
+    {
+      $set: {
+        ...req.body,
+        updatedAt: new Date(),
+      },
+    }
+  );
+
+  res.json({
+    message: "Idea updated successfully",
+  });
+});
+
+app.delete("/ideas/:id", verifyToken, async (req, res) => {
+  await startupIdeasCollection.deleteOne({
+    _id: new ObjectId(req.params.id),
+  });
+
+  res.json({
+    message: "Idea deleted successfully",
+  });
+});
+
+
 
 
