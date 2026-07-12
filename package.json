@@ -8,5 +8,10 @@
     "jose-cjs": "^6.2.3",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
   }
 }
