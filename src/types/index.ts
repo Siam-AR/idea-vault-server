@@ -1,5 +1,5 @@
 export interface User {
-  _id?: string;
+  _id: string;
   name?: string;
   email?: string;
   avatar?: string;
@@ -9,9 +9,9 @@ export interface User {
 }
 
 export interface Comment {
-  _id?: string;
+  _id: string;
   content: string;
-  ideaId?: string;
+  ideaId: string;
   userId?: string;
   user?: User;
   createdAt?: string;
@@ -19,7 +19,7 @@ export interface Comment {
 }
 
 export interface Idea {
-  _id?: string;
+  _id: string;
   title: string;
   description: string;
   category?: string;
