@@ -10,7 +10,6 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "ignoreDeprecations": "6.0",
     "types": ["node"]
   },
   "include": ["server.ts", "src/**/*.ts"],
