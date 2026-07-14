@@ -522,22 +522,56 @@ async function run() {
       }
     });
 
+    const normalizeObjectId = (value?: ObjectId | string | null): ObjectId | null => {
+      if (!value) return null;
+      if (typeof value === "string") {
+        return ObjectId.isValid(value) ? new ObjectId(value) : null;
+      }
+      return value;
+    };
+
+    const normalizeIdString = (value?: ObjectId | string | null): string | undefined => {
+      if (!value) return undefined;
+      return typeof value === "string" ? value : value.toString();
+    };
+
     const buildCommentResponse = async (comment: CommentDocument) => {
       const user = await usersCollection.findOne(
         { _id: comment.userId },
         { projection: { name: 1, image: 1, email: 1 } },
       );
 
+      const ideaQueryId = normalizeObjectId(comment.ideaId);
+      const idea = ideaQueryId
+        ? await startupIdeasCollection.findOne(
+            { _id: ideaQueryId },
+            { projection: { title: 1, category: 1, userName: 1, userEmail: 1 } },
+          )
+        : null;
+
+      const ideaAuthorName = idea?.userName || idea?.userEmail || "Anonymous builder";
+
       return {
-        _id: comment._id,
-        ideaId: comment.ideaId,
-        userId: comment.userId,
+        _id: normalizeIdString(comment._id) || "",
+        ideaId: normalizeIdString(comment.ideaId),
+        userId: normalizeIdString(comment.userId),
         text: comment.text,
-        createdAt: comment.createdAt,
-        updatedAt: comment.updatedAt,
+        createdAt: comment.createdAt?.toISOString(),
+        updatedAt: comment.updatedAt?.toISOString(),
         userName: user?.name || "Anonymous",
         userEmail: user?.email || "",
         userImage: user?.image || "",
+        ideaTitle: idea?.title,
+        ideaCategory: idea?.category,
+        ideaAuthorName,
+        idea: idea
+          ? {
+              _id: normalizeIdString(idea._id) || "",
+              title: idea.title,
+              category: idea.category,
+              authorName: ideaAuthorName,
+            }
+          : undefined,
       };
     };
 
