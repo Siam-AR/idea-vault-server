@@ -14,7 +14,10 @@ const uri = process.env.MONGODB_URI;
 if (!uri) {
     throw new Error("MONGODB_URI is not defined");
 }
+const maskedUri = uri.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@");
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const DB_NAME = (process.env.MONGODB_DB_NAME || "community-spark").trim();
+console.log(`MongoDB URI: ${maskedUri}`);
 const CLIENT_URLS = (process.env.CLIENT_URL || process.env.CLIENT_URLS || "")
     .split(",")
     .map((url) => url.trim())
@@ -52,10 +55,11 @@ const verifyToken = async (req, res, next) => {
 async function run() {
     try {
         // await client.connect();
-        const db = client.db("idea-vault");
+        const db = client.db(DB_NAME);
         const usersCollection = db.collection("users");
-        const startupIdeasCollection = db.collection("startup-ideas");
+        const communityIdeasCollection = db.collection("community-ideas");
         const commentsCollection = db.collection("comments");
+        console.log(`Using MongoDB database: ${DB_NAME}`);
         app.post("/auth/register", async (req, res) => {
             try {
                 const { name, email, password, image } = req.body;
@@ -226,7 +230,7 @@ async function run() {
         });
         app.get("/ideas/featured", async (req, res) => {
             try {
-                const result = await startupIdeasCollection.find().limit(6).toArray();
+                const result = await communityIdeasCollection.find().limit(6).toArray();
                 res.json(result);
             }
             catch (error) {
@@ -259,7 +263,7 @@ async function run() {
                     }
                     filter.createdAt = dateFilter;
                 }
-                const result = await startupIdeasCollection.find(filter).toArray();
+                const result = await communityIdeasCollection.find(filter).toArray();
                 res.json(result);
             }
             catch (error) {
@@ -273,7 +277,7 @@ async function run() {
                 if (!mongodb_1.ObjectId.isValid(id)) {
                     return res.status(404).json({ message: "Idea not found" });
                 }
-                const result = await startupIdeasCollection.findOne({ _id: new mongodb_1.ObjectId(id) });
+                const result = await communityIdeasCollection.findOne({ _id: new mongodb_1.ObjectId(id) });
                 if (!result) {
                     return res.status(404).json({ message: "Idea not found" });
                 }
@@ -330,7 +334,7 @@ async function run() {
                     likes: 0,
                     commentCount: 0,
                 };
-                const result = await startupIdeasCollection.insertOne(ideaData);
+                const result = await communityIdeasCollection.insertOne(ideaData);
                 res.status(201).json({ message: "Idea created successfully", id: result.insertedId });
             }
             catch (error) {
@@ -342,7 +346,7 @@ async function run() {
             try {
                 const { id } = req.params;
                 const updatedData = { ...req.body, updatedAt: new Date() };
-                const idea = await startupIdeasCollection.findOne({ _id: new mongodb_1.ObjectId(id) });
+                const idea = await communityIdeasCollection.findOne({ _id: new mongodb_1.ObjectId(id) });
                 if (!idea) {
                     return res.status(404).json({ message: "Idea not found" });
                 }
@@ -351,7 +355,7 @@ async function run() {
                 if (!normalizedUserId || idea.userId.toString() !== normalizedUserId) {
                     return res.status(403).json({ message: "Forbidden" });
                 }
-                await startupIdeasCollection.updateOne({ _id: idea._id }, { $set: updatedData });
+                await communityIdeasCollection.updateOne({ _id: idea._id }, { $set: updatedData });
                 res.json({ message: "Idea updated successfully" });
             }
             catch (error) {
@@ -362,7 +366,7 @@ async function run() {
         app.delete("/ideas/:id", verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
-                const idea = await startupIdeasCollection.findOne({ _id: new mongodb_1.ObjectId(id) });
+                const idea = await communityIdeasCollection.findOne({ _id: new mongodb_1.ObjectId(id) });
                 if (!idea) {
                     return res.status(404).json({ message: "Idea not found" });
                 }
@@ -371,7 +375,7 @@ async function run() {
                 if (!normalizedUserId || idea.userId.toString() !== normalizedUserId) {
                     return res.status(403).json({ message: "Forbidden" });
                 }
-                await startupIdeasCollection.deleteOne({ _id: idea._id });
+                await communityIdeasCollection.deleteOne({ _id: idea._id });
                 res.json({ message: "Idea deleted successfully" });
             }
             catch (error) {
@@ -386,7 +390,7 @@ async function run() {
                     return res.status(401).json({ message: "Unauthorized" });
                 }
                 const normalizedUserId = typeof userId === "string" ? userId : userId.toString();
-                const result = await startupIdeasCollection.find({ userId: new mongodb_1.ObjectId(normalizedUserId) }).toArray();
+                const result = await communityIdeasCollection.find({ userId: new mongodb_1.ObjectId(normalizedUserId) }).toArray();
                 res.json(result);
             }
             catch (error) {
@@ -411,7 +415,7 @@ async function run() {
             const user = await usersCollection.findOne({ _id: comment.userId }, { projection: { name: 1, image: 1, email: 1 } });
             const ideaQueryId = normalizeObjectId(comment.ideaId);
             const idea = ideaQueryId
-                ? await startupIdeasCollection.findOne({ _id: ideaQueryId }, { projection: { title: 1, category: 1, userName: 1, userEmail: 1 } })
+                ? await communityIdeasCollection.findOne({ _id: ideaQueryId }, { projection: { title: 1, category: 1, userName: 1, userEmail: 1 } })
                 : null;
             const ideaAuthorName = idea?.userName || idea?.userEmail || "Anonymous builder";
             return {
@@ -456,7 +460,7 @@ async function run() {
                     updatedAt: new Date(),
                 };
                 const result = await commentsCollection.insertOne(commentData);
-                await startupIdeasCollection.updateOne({ _id: new mongodb_1.ObjectId(ideaId) }, { $inc: { commentCount: 1 } });
+                await communityIdeasCollection.updateOne({ _id: new mongodb_1.ObjectId(ideaId) }, { $inc: { commentCount: 1 } });
                 const comment = await commentsCollection.findOne({ _id: result.insertedId });
                 if (!comment) {
                     return res.status(500).json({ message: "Comment creation failed" });
