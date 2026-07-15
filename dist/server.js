@@ -290,16 +290,20 @@ async function run() {
         });
         app.post("/ideas", verifyToken, async (req, res) => {
             try {
-                const { title, shortDescription, detailedDescription, category, tags, imageURL, estimatedBudget, targetAudience, problemStatement, proposedSolution, userName, userEmail, } = req.body;
+                const { title, shortDescription, detailedDescription, fullDescription, category, tags, imageURL, location, supportNeeded, priority, estimatedBudget, targetAudience, problemStatement, proposedSolution, userName, userEmail, } = req.body;
+                const normalizedFullDescription = String(fullDescription || detailedDescription || "").trim();
+                const normalizedLocation = String(location || targetAudience || "").trim();
+                const normalizedSupportNeeded = String(supportNeeded || problemStatement || "").trim();
+                const normalizedPriority = String(priority || proposedSolution || "").trim();
                 const requiredFields = [
                     ["title", title],
                     ["shortDescription", shortDescription],
-                    ["detailedDescription", detailedDescription],
+                    ["fullDescription", normalizedFullDescription],
                     ["category", category],
                     ["imageURL", imageURL],
-                    ["targetAudience", targetAudience],
-                    ["problemStatement", problemStatement],
-                    ["proposedSolution", proposedSolution],
+                    ["location", normalizedLocation],
+                    ["supportNeeded", normalizedSupportNeeded],
+                    ["priority", normalizedPriority],
                 ];
                 const missingField = requiredFields.find(([, value]) => !String(value || "").trim());
                 if (missingField) {
@@ -313,7 +317,8 @@ async function run() {
                 const ideaData = {
                     title: title.trim(),
                     shortDescription: shortDescription.trim(),
-                    detailedDescription: detailedDescription.trim(),
+                    detailedDescription: normalizedFullDescription,
+                    fullDescription: normalizedFullDescription,
                     category: category.trim(),
                     tags: Array.isArray(tags)
                         ? tags.map((tag) => String(tag).trim()).filter(Boolean)
@@ -322,10 +327,13 @@ async function run() {
                             .map((tag) => tag.trim())
                             .filter(Boolean),
                     imageURL: imageURL.trim(),
-                    estimatedBudget: String(estimatedBudget || "").trim(),
-                    targetAudience: targetAudience.trim(),
-                    problemStatement: problemStatement.trim(),
-                    proposedSolution: proposedSolution.trim(),
+                    location: normalizedLocation,
+                    supportNeeded: normalizedSupportNeeded,
+                    priority: normalizedPriority,
+                    estimatedBudget: String(estimatedBudget || supportNeeded || "").trim(),
+                    targetAudience: normalizedLocation,
+                    problemStatement: normalizedSupportNeeded,
+                    proposedSolution: normalizedPriority,
                     userId: new mongodb_1.ObjectId(normalizedUserId),
                     userName: String(userName || req.user?.name || "Anonymous").trim() || "Anonymous",
                     userEmail: String(userEmail || req.user?.email || "").trim(),
